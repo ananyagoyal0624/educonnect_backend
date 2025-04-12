@@ -3,7 +3,9 @@ const router = express.Router();
 const { verifyToken, authorizeRoles } = require("../middleware/authMiddleware.js");
 const assignmentController = require("../controllers/assignmentController");
 
+const { verifyToken: protect } = require('../middleware/authMiddleware');
 
+router.post('/sync', protect, syncAssignments);
 router.post("/submit", verifyToken, assignmentController.submitAssignment);
 router.get("/", verifyToken, assignmentController.getAllAssignments);
 router.get("/:id", verifyToken, assignmentController.getAssignmentById);
