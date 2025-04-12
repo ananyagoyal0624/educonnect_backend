@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, authorizeRoles } = require("../middleware/authMiddleware.js");
 const assignmentController = require("../controllers/assignmentController");
-
+const { syncAssignments } = require('../controllers/assignmentController');
 const { verifyToken: protect } = require('../middleware/authMiddleware');
 
 router.post('/sync', protect, syncAssignments);
