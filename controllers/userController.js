@@ -4,6 +4,7 @@ const AccessAudit = require("../models/AccessAudit"); // we'll create this next
 
 
 
+
 // fetch user by ID
 exports.getUserById = async (req, res) => {
     try {
@@ -18,46 +19,6 @@ exports.getUserById = async (req, res) => {
     }
 };
 
-exports.grantTemporaryAccess = async (req, res) => {
-	try {
-		const { studentEmail, professorEmail, grant } = req.body;
-
-		if (!studentEmail || !professorEmail) {
-			return res.status(400).json({ message: "Missing email(s)" });
-		}
-
-		// Update hasAccess field
-		const updatedUser = await User.findOneAndUpdate(
-			{ email: studentEmail },
-			grant
-				? {
-						hasAccess: true,
-						accessExpiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-				  }
-				: {
-						hasAccess: false,
-						accessExpiresAt: null,
-				  },
-			{ new: true }
-		);
-		if (!updatedUser) {
-			return res.status(404).json({ message: "Student not found" });
-		}
-
-		// Log audit
-		await AccessAudit.create({
-			studentEmail,
-			professorEmail,
-			action: grant ? "GRANTED" : "REVOKED",
-			timestamp: new Date(),
-		});
-
-		res.status(200).json({ message: `Access ${grant ? "granted" : "revoked"} successfully` });
-	} catch (err) {
-		console.error("Grant access error:", err);
-		res.status(500).json({ message: "Internal server error" });
-	}
-};
 
 
 // fetch all users
@@ -120,6 +81,52 @@ exports.createUser = async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 };
+
+
+
+
+
+// temporary role escalation - granting temporary access to a student to take attendance
+exports.grantTemporaryAccess = async (req, res) => {
+    try {
+        const { studentEmail, professorEmail, grant } = req.body;
+
+        const emailToSearch = studentEmail.trim().toLowerCase();
+
+        if (!studentEmail || !professorEmail) {
+            return res.status(400).json({ message: "Missing email(s)" });
+        }
+
+        // Update hasAccess field
+        const updatedUser = await User.findOneAndUpdate(
+            { email: emailToSearch },
+            {
+                hasAccess: true,
+                accessExpiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+            },
+
+            { new: true }
+        );
+        if (!updatedUser) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Log audit
+        await AccessAudit.create({
+            studentEmail,
+            professorEmail,
+            action: grant ? "GRANTED" : "REVOKED",
+            timestamp: new Date(),
+        });
+        console.log("Updated user:", updatedUser);
+
+        res.status(200).json({ message: `Access ${grant ? "granted" : "revoked"} successfully` });
+    } catch (err) {
+        console.error("Grant access error:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 
 
 
